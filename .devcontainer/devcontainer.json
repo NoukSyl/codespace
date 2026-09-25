@@ -14,5 +14,5 @@
   "postCreateCommand": "bash .devcontainer/postCreate.sh",
   "postStartCommand": "bash .devcontainer/postStart.sh",
 
-  "remoteUser": "vscode"
+  "remoteUser": "root"
 }
