@@ -1,6 +1,9 @@
 {
-  "name": "netbird-ssh-codespace",
-  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "name": "arch-netbird-dockur",
+
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
 
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {}
@@ -8,6 +11,7 @@
 
   "runArgs": [
     "--privileged",
+    "--device=/dev/kvm",
     "--device=/dev/net/tun"
   ],
 
