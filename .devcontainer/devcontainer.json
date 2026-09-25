@@ -1,19 +1,10 @@
 {
-  "name": "Windows 11 Pro",
-  "service": "windows",
-  "containerEnv": {
-    "VERSION": "11"
+  "name": "tailscale-ssh-codespace",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {}
   },
-  "forwardPorts": [8006],
-  "portsAttributes": {
-    "8006": {
-      "label": "Web",
-      "onAutoForward": "notify"
-    }
-  },
-  "otherPortsAttributes": {
-    "onAutoForward": "ignore"
-  },
-  "dockerComposeFile": "codespaces.yml",
-  "initializeCommand": "docker system prune --all --force"
+  "postCreateCommand": "bash .devcontainer/postCreate.sh",
+  "postStartCommand": "bash .devcontainer/postStart.sh",
+  "remoteUser": "vscode"
 }
