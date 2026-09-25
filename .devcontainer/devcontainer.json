@@ -1,9 +1,15 @@
 {
-  "name": "ngrok-ssh-codespace",
+  "name": "netbird-ssh-codespace",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {}
   },
+  "runArgs": [
+    "--cap-add=NET_ADMIN",
+    "--cap-add=SYS_ADMIN",
+    "--cap-add=SYS_RESOURCE",
+    "--device=/dev/net/tun"
+  ],
   "postCreateCommand": "bash .devcontainer/postCreate.sh",
   "postStartCommand": "bash .devcontainer/postStart.sh",
   "remoteUser": "vscode"

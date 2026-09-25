@@ -7,57 +7,58 @@ sudo mkdir -p /run/sshd
 sudo /usr/sbin/sshd
 echo "==> sshd is listening on port 22"
 
-if [ -z "${NGROK_AUTHTOKEN:-}" ]; then
-  echo "!! NGROK_AUTHTOKEN is not set."
+if [ -z "${NETBIRD_SETUP_KEY:-}" ]; then
+  echo "!! NETBIRD_SETUP_KEY is not set."
   echo "   Add it as a Codespaces secret (repo/org Settings > Secrets and variables > Codespaces)."
-  echo "   Get a token at https://dashboard.ngrok.com/get-started/your-authtoken"
-  echo "   Until then, run manually once the token is available:"
-  echo "     ngrok config add-authtoken \$NGROK_AUTHTOKEN"
-  echo "     ngrok tcp 22"
+  echo "   Create a setup key from your NetBird dashboard: Team > Setup Keys."
+  echo "   Until then, run manually once the key is available:"
+  echo "     sudo netbird up --setup-key \$NETBIRD_SETUP_KEY --foreground-mode &"
   exit 0
 fi
 
-echo "==> Configuring ngrok"
-ngrok config add-authtoken "${NGROK_AUTHTOKEN}"
-
-# Kill any stale ngrok from a previous start so we don't get a stuck port.
-pkill -f "ngrok tcp 22" 2>/dev/null || true
+# Kill any stale netbird client from a previous start so we don't get stuck state.
+sudo pkill -f "netbird up" 2>/dev/null || true
 sleep 1
 
-echo "==> Starting ngrok TCP tunnel to port 22"
-nohup ngrok tcp 22 --log=stdout > /tmp/ngrok.log 2>&1 &
+echo "==> Starting NetBird and joining the network"
+MGMT_FLAG=()
+if [ -n "${NETBIRD_MANAGEMENT_URL:-}" ]; then
+  MGMT_FLAG=(--management-url "${NETBIRD_MANAGEMENT_URL}")
+fi
 
-# Wait for ngrok's local API to report the public tunnel address.
-NGROK_URL=""
-for i in $(seq 1 15); do
-  NGROK_URL=$(curl -s http://127.0.0.1:4040/api/tunnels 2>/dev/null \
-    | grep -o '"public_url":"tcp://[^"]*"' \
-    | head -n1 \
-    | sed -E 's/"public_url":"tcp:\/\/(.*)"/\1/')
-  if [ -n "$NGROK_URL" ]; then
+# This container has no systemd, so instead of the usual background daemon
+# mode, --foreground-mode runs the whole NetBird client as one plain process,
+# which we then push into the background ourselves with nohup/&.
+sudo nohup netbird up --setup-key "${NETBIRD_SETUP_KEY}" "${MGMT_FLAG[@]}" \
+  --foreground-mode --allow-server-ssh > /tmp/netbird.log 2>&1 &
+
+# Wait for NetBird to finish registering and report its assigned IP.
+NB_IP=""
+for i in $(seq 1 20); do
+  NB_IP=$(sudo netbird status 2>/dev/null | grep -o 'NetBird IP: [0-9.]*' | head -n1 | cut -d' ' -f3)
+  if [ -n "$NB_IP" ]; then
     break
   fi
   sleep 1
 done
 
-if [ -z "$NGROK_URL" ]; then
-  echo "!! ngrok did not report a tunnel URL in time. Check /tmp/ngrok.log"
-  sudo cat /tmp/ngrok.log
+if [ -z "$NB_IP" ]; then
+  echo "!! NetBird did not report an IP in time. Check /tmp/netbird.log"
+  sudo cat /tmp/netbird.log
   exit 1
 fi
 
-HOST="${NGROK_URL%%:*}"
-PORT="${NGROK_URL##*:}"
-
 cat <<EOF
 
-==> ngrok tunnel is up.
-    Connect from any machine (with your matching private key) using:
+==> NetBird is up. This peer's NetBird IP: ${NB_IP}
 
-        ssh -p ${PORT} root@${HOST}
+    Connect from any machine that is ALSO joined to this same NetBird
+    network (with your matching private key) using:
 
-    Note (free ngrok tier): this host:port changes every time the tunnel
-    restarts. Re-run this script's output (or check /tmp/ngrok.log,
-    or http://127.0.0.1:4040 while the Codespace is open) to get the
-    current address each time.
+        ssh root@${NB_IP}
+
+    Unlike ngrok, there is no public tunnel URL. The connecting machine
+    must have the NetBird client installed and logged into this same
+    network (netbird up --setup-key ...) before it can reach this address,
+    and that address stays the same across restarts.
 EOF

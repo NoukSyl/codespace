@@ -30,12 +30,7 @@ else
   echo "   Without it, nobody can log in — password auth is disabled on purpose."
 fi
 
-echo "==> Installing ngrok"
-curl -fsSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
-  | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-  | sudo tee /etc/apt/sources.list.d/ngrok.list >/dev/null
-sudo apt-get update -y
-sudo apt-get install -y ngrok
+echo "==> Installing NetBird"
+curl -fsSL https://pkgs.netbird.io/install.sh | sudo sh
 
 echo "==> postCreate finished."
