@@ -4,21 +4,16 @@
   "containerEnv": {
     "VERSION": "11"
   },
-  "forwardPorts": [5900, 3389],
+  "forwardPorts": [8006],
   "portsAttributes": {
-    "5900": {
-      "label": "VNC",
+    "8006": {
+      "label": "Web",
       "onAutoForward": "notify"
-    },
-    "3389": {
-      "label": "RDP",
-      "onAutoForward": "ignore"
     }
   },
   "otherPortsAttributes": {
     "onAutoForward": "ignore"
   },
   "dockerComposeFile": "codespaces.yml",
-  "initializeCommand": "docker system prune --all --force",
-  "postAttachCommand": "bash .devcontainer/setup-tailscale.sh"
+  "initializeCommand": "docker system prune --all --force"
 }
