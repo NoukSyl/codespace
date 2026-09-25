@@ -2,60 +2,62 @@
 # Runs every time the Codespace container starts (including resume).
 set -uo pipefail
 
-TS_SOCK=/var/run/tailscale/tailscaled.sock
-TS_STATE=/var/lib/tailscale/tailscaled.state
+echo "==> Starting sshd"
+sudo mkdir -p /run/sshd
+sudo /usr/sbin/sshd
+echo "==> sshd is listening on port 22"
 
-echo "==> Starting tailscaled"
-sudo mkdir -p /var/lib/tailscale /var/run/tailscale
-
-# Only start it if it isn't already running from a previous resume.
-if ! sudo test -S "$TS_SOCK"; then
-  sudo tailscaled \
-    --state="$TS_STATE" \
-    --socket="$TS_SOCK" \
-    >/tmp/tailscaled.log 2>&1 &
-
-  # Wait (up to 15s) for the socket to actually appear instead of a fixed sleep.
-  for i in $(seq 1 15); do
-    if sudo test -S "$TS_SOCK"; then
-      break
-    fi
-    sleep 1
-  done
-
-  if ! sudo test -S "$TS_SOCK"; then
-    echo "!! tailscaled failed to start. Log:"
-    sudo cat /tmp/tailscaled.log
-    exit 1
-  fi
-fi
-echo "==> tailscaled is running"
-
-if [ -z "${TAILSCALE_AUTHKEY:-}" ]; then
-  echo "!! TAILSCALE_AUTHKEY is not set."
-  echo "   Add it as a Codespaces secret (repo/org Settings > Secrets and variables > Codespaces)"
-  echo "   so this script can authenticate automatically. Until then, run manually:"
-  echo "     sudo tailscale up --ssh"
+if [ -z "${NGROK_AUTHTOKEN:-}" ]; then
+  echo "!! NGROK_AUTHTOKEN is not set."
+  echo "   Add it as a Codespaces secret (repo/org Settings > Secrets and variables > Codespaces)."
+  echo "   Get a token at https://dashboard.ngrok.com/get-started/your-authtoken"
+  echo "   Until then, run manually once the token is available:"
+  echo "     ngrok config add-authtoken \$NGROK_AUTHTOKEN"
+  echo "     ngrok tcp 22"
   exit 0
 fi
 
-echo "==> Bringing up Tailscale (with SSH host enabled)"
-if ! sudo tailscale up \
-  --authkey="${TAILSCALE_AUTHKEY}" \
-  --hostname="codespace-${CODESPACE_NAME:-$(hostname)}" \
-  --ssh \
-  --accept-routes; then
-  echo "!! 'tailscale up' failed. Check the authkey (expired/already used/invalid) and try:"
-  echo "     sudo tailscale up --ssh"
+echo "==> Configuring ngrok"
+ngrok config add-authtoken "${NGROK_AUTHTOKEN}"
+
+# Kill any stale ngrok from a previous start so we don't get a stuck port.
+pkill -f "ngrok tcp 22" 2>/dev/null || true
+sleep 1
+
+echo "==> Starting ngrok TCP tunnel to port 22"
+nohup ngrok tcp 22 --log=stdout > /tmp/ngrok.log 2>&1 &
+
+# Wait for ngrok's local API to report the public tunnel address.
+NGROK_URL=""
+for i in $(seq 1 15); do
+  NGROK_URL=$(curl -s http://127.0.0.1:4040/api/tunnels 2>/dev/null \
+    | grep -o '"public_url":"tcp://[^"]*"' \
+    | head -n1 \
+    | sed -E 's/"public_url":"tcp:\/\/(.*)"/\1/')
+  if [ -n "$NGROK_URL" ]; then
+    break
+  fi
+  sleep 1
+done
+
+if [ -z "$NGROK_URL" ]; then
+  echo "!! ngrok did not report a tunnel URL in time. Check /tmp/ngrok.log"
+  sudo cat /tmp/ngrok.log
   exit 1
 fi
 
-echo "==> Connected. This machine's Tailscale IP:"
-if ! tailscale ip -4; then
-  echo "!! Could not read Tailscale IP even though 'tailscale up' reported success."
-  exit 1
-fi
+HOST="${NGROK_URL%%:*}"
+PORT="${NGROK_URL##*:}"
 
-echo "==> SSH is available via Tailscale SSH (no keys to manage):"
-echo "    ssh vscode@codespace-${CODESPACE_NAME:-$(hostname)}"
-echo "    (from any device logged into the same tailnet)"
+cat <<EOF
+
+==> ngrok tunnel is up.
+    Connect from any machine (with your matching private key) using:
+
+        ssh -p ${PORT} root@${HOST}
+
+    Note (free ngrok tier): this host:port changes every time the tunnel
+    restarts. Re-run this script's output (or check /tmp/ngrok.log,
+    or http://127.0.0.1:4040 while the Codespace is open) to get the
+    current address each time.
+EOF
