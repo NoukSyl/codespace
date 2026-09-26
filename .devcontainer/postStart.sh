@@ -11,6 +11,18 @@ fi
 
 echo "SSH started."
 
+echo "==> Ensuring Windows VM container is running"
+
+if docker ps --format '{{.Names}}' | grep -qx windows; then
+    echo "Windows container already running."
+else
+    if docker start windows >/dev/null 2>&1; then
+        echo "Windows container started."
+    else
+        echo "WARNING: could not start 'windows' container (was postCreate.sh run?)."
+    fi
+fi
+
 echo "==> Starting NetBird"
 
 if [ -z "${NETBIRD_SETUP_KEY:-}" ]; then

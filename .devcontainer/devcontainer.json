@@ -1,17 +1,24 @@
 {
-  "name": "archlinux",
+  "name": "Windows VM",
   "build": {
     "dockerfile": "Dockerfile"
   },
   "runArgs": [
-    "--privileged",
-    "--device=/dev/kvm",
-    "--device=/dev/net/tun"
+    "--privileged"
   ],
-  "mounts": [
-    "source=/var/run/docker-host.sock,target=/var/run/docker.sock,type=bind"
-  ],
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "forwardPorts": [8006, 3389],
+  "portsAttributes": {
+    "8006": {
+      "label": "Windows Web Viewer (noVNC)",
+      "onAutoForward": "openPreview"
+    },
+    "3389": {
+      "label": "RDP"
+    }
+  },
   "postCreateCommand": "bash .devcontainer/postCreate.sh",
-  "postStartCommand": "bash .devcontainer/postStart.sh",
-  "remoteUser": "vscode"
+  "postStartCommand": "bash .devcontainer/postStart.sh"
 }
