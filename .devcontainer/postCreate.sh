@@ -68,17 +68,17 @@ sudo docker run -d \
     --device=/dev/kvm \
     --device=/dev/net/tun \
     --cap-add NET_ADMIN \
-    --memory="9g" \
-    --memory-swap="9g" \
-    --cpus="3" \
+    --memory="15g" \
+    --memory-swap="15g" \
+    --cpus="4" \
     -p 8006:8006 \
     -p 3389:3389/tcp \
     -p 3389:3389/udp \
     -v windows-data:/storage \
-    -e VERSION="11" \
-    -e RAM_SIZE="8G" \
-    -e CPU_CORES="3" \
-    -e DISK_SIZE="24G" \
+    -e VERSION="10" \
+    -e RAM_SIZE="14G" \
+    -e CPU_CORES="4" \
+    -e DISK_SIZE="22G" \
     --stop-timeout 120 \
     dockurr/windows
 
