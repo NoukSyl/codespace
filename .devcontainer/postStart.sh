@@ -30,17 +30,29 @@ if [ -z "${NETBIRD_SETUP_KEY:-}" ]; then
     exit 0
 fi
 
-sudo pkill -f "netbird up" 2>/dev/null || true
+sudo pkill -f "netbird" 2>/dev/null || true
 sleep 1
 
-sudo nohup netbird up \
-    --setup-key "$NETBIRD_SETUP_KEY" \
-    --foreground-mode \
-    --allow-server-ssh \
-    >/tmp/netbird.log 2>&1 &
+echo "Starting NetBird daemon..."
+sudo nohup netbird service run >/tmp/netbird-daemon.log 2>&1 &
 
-sleep 5
+echo "Waiting for daemon socket..."
+for i in $(seq 1 15); do
+    if [ -S /var/run/netbird.sock ]; then
+        break
+    fi
+    sleep 1
+done
 
-sudo netbird status || true
+if [ -S /var/run/netbird.sock ]; then
+    echo "Daemon is up, logging in..."
+    sudo netbird up \
+        --setup-key "$NETBIRD_SETUP_KEY" \
+        --allow-server-ssh
+
+    sudo netbird status || true
+else
+    echo "WARNING: netbird daemon socket never appeared after 15s; see /tmp/netbird-daemon.log"
+fi
 
 echo "==> postStart finished."
