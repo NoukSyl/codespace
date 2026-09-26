@@ -6,9 +6,9 @@
   "runArgs": [
     "--privileged"
   ],
-  "features": {
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
-  },
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
   "forwardPorts": [8006, 3389],
   "portsAttributes": {
     "8006": {

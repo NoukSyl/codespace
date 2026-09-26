@@ -2,19 +2,19 @@
 set -euo pipefail
 
 echo "==> Checking Docker CLI"
-docker --version
+sudo docker --version
 
 echo "==> Checking Docker daemon"
-if docker info >/dev/null 2>&1; then
+if sudo docker info >/dev/null 2>&1; then
     echo "Docker daemon is reachable."
 else
     echo "ERROR: Docker daemon is NOT reachable."
-    echo "Check the docker-outside-of-docker feature / Codespaces Docker setup."
+    echo "Check that /var/run/docker.sock was mounted from the host."
     exit 1
 fi
 
 echo "==> Checking KVM on host (via a throwaway container)"
-if docker run --rm --device=/dev/kvm alpine sh -c 'test -r /dev/kvm && test -w /dev/kvm' >/dev/null 2>&1; then
+if sudo docker run --rm --device=/dev/kvm alpine sh -c 'test -r /dev/kvm && test -w /dev/kvm' >/dev/null 2>&1; then
     echo "KVM accessible."
 else
     echo "ERROR: /dev/kvm is not accessible from the host Docker daemon."
@@ -60,9 +60,9 @@ curl -fsSL https://pkgs.netbird.io/install.sh | sudo sh
 
 echo "==> Starting Windows VM container (dockurr/windows)"
 
-docker rm -f windows >/dev/null 2>&1 || true
+sudo docker rm -f windows >/dev/null 2>&1 || true
 
-docker run -d \
+sudo docker run -d \
     --name windows \
     --restart always \
     --device=/dev/kvm \
