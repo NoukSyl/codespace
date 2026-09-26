@@ -1,6 +1,5 @@
 FROM archlinux:latest
 
-# Update system and install the tools required by the Codespace.
 RUN pacman -Syu --noconfirm && \
     pacman -S --noconfirm \
         base-devel \
@@ -30,14 +29,11 @@ RUN pacman -Syu --noconfirm && \
         gzip && \
     pacman -Scc --noconfirm
 
-# Create the user used by VS Code / Codespaces.
 RUN useradd -m -s /bin/bash vscode && \
     echo "vscode ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/vscode && \
     chmod 440 /etc/sudoers.d/vscode
 
-# SSH runtime directory.
-RUN mkdir -p /run/sshd && \
-    chmod 755 /run/sshd
+RUN mkdir -p /run/sshd
 
 WORKDIR /workspaces
 
