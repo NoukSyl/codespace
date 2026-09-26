@@ -1,5 +1,5 @@
 {
-  "name": "arch-dockurr-windows",
+  "name": "archlinux",
   "build": {
     "dockerfile": "Dockerfile"
   },
@@ -7,6 +7,9 @@
     "--privileged",
     "--device=/dev/kvm",
     "--device=/dev/net/tun"
+  ],
+  "mounts": [
+    "source=/var/run/docker-host.sock,target=/var/run/docker.sock,type=bind"
   ],
   "postCreateCommand": "bash .devcontainer/postCreate.sh",
   "postStartCommand": "bash .devcontainer/postStart.sh",
